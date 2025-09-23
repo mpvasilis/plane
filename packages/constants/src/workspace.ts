@@ -255,6 +255,13 @@ export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS: Record<string, IWorkspa
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
     highlight: (pathname: string, url: string) => pathname === url,
   },
+  "team-planning": {
+    key: "team-planning",
+    labelTranslationKey: "team_planning",
+    href: `/team-planning/`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
+  },
   analytics: {
     key: "analytics",
     labelTranslationKey: "analytics",
@@ -280,6 +287,7 @@ export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS: Record<string, IWorkspa
 
 export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS: IWorkspaceSidebarNavigationItem[] = [
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["views"]!,
+  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["team-planning"]!,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["analytics"]!,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["drafts"]!,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["archives"]!,
