@@ -1,114 +1,134 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-// plane imports
-import { Button } from "@plane/ui";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
+// plane ui
+import { Spinner } from "@plane/ui";
+// utils
+import { cn } from "@plane/utils";
 // hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useTeamPlanning } from "@/hooks/store/use-team-planning";
-import { useUser } from "@/hooks/store/use-user";
-// components
-import { TeamPlanningGrid } from "./team-planning-grid";
-import { TaskAssignmentModal } from "./task-assignment-modal";
+import useSize from "@/hooks/use-window-size";
+// local imports
+import { TeamPlanningWeekHeader } from "./week-header";
+import { TeamPlanningUserRow } from "./user-row";
+import { TeamPlanningProps } from "./types";
 
-export const TeamPlanningView = observer(() => {
-  // states
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
-  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+export const TeamPlanningView: React.FC<TeamPlanningProps> = observer((props) => {
+  const {
+    users,
+    tasks,
+    weekData,
+    showWeekends = true,
+    startOfWeek = 1, // Monday
+    readOnly = false,
+    onTaskAssign,
+    onTaskCreate,
+    onTaskUpdate,
+    onTaskRemove,
+    canEditTasks,
+    canCreateTasks,
+  } = props;
 
-  // store hooks
-  const { workspaceMemberIds, fetchWorkspaceMembers } = useMember();
-  const { data: currentUser } = useUser();
-  const teamPlanningStore = useTeamPlanning();
+  // refs
+  const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
+  const [windowWidth] = useSize();
 
-  // derived values
-  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
-  // fetch workspace members on component mount
+  // Enable Auto Scroll for drag and drop
   useEffect(() => {
-    fetchWorkspaceMembers();
-  }, [fetchWorkspaceMembers]);
+    const element = scrollableContainerRef.current;
 
-  const handlePreviousWeek = () => {
-    setCurrentWeek(prev => addDays(prev, -7));
-  };
+    if (!element) return;
 
-  const handleNextWeek = () => {
-    setCurrentWeek(prev => addDays(prev, 7));
-  };
+    return combine(
+      autoScrollForElements({
+        element,
+      })
+    );
+  }, [scrollableContainerRef?.current]);
 
-  const handleToday = () => {
-    setCurrentWeek(new Date());
-  };
+  // Group tasks by user and date for efficient lookup
+  const tasksByUserAndDate = tasks.reduce((acc, task) => {
+    task.assignee_ids?.forEach((userId) => {
+      if (!acc[userId]) acc[userId] = {};
+      
+      // Handle multi-day tasks
+      const startDate = new Date(task.start_date);
+      const endDate = new Date(task.target_date);
+      
+      // Create entries for each day the task spans
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        if (!acc[userId][dateKey]) acc[userId][dateKey] = [];
+        acc[userId][dateKey].push(task);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+    return acc;
+  }, {} as Record<string, Record<string, typeof tasks>>);
 
-  const handleAssignTask = (assigneeId: string, date: Date) => {
-    setSelectedAssignee(assigneeId);
-    setSelectedDate(date);
-    setIsAssignmentModalOpen(true);
-  };
+  // Filter days based on showWeekends setting
+  const visibleDays = weekData.days.filter(day => {
+    if (showWeekends) return true;
+    const dayOfWeek = day.getDay();
+    return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday (0) and Saturday (6)
+  });
 
-  const handleCloseModal = () => {
-    setIsAssignmentModalOpen(false);
-    setSelectedAssignee(null);
-    setSelectedDate(null);
-  };
+  if (!users.length) {
+    return (
+      <div className="grid h-full w-full place-items-center">
+        <Spinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-full w-full flex-col">
-      {/* Week Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 border-b border-custom-border-200 p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline-without-text"
-              size="sm"
-              onClick={handlePreviousWeek}
-              className="flex items-center justify-center"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline-without-text"
-              size="sm"
-              onClick={handleNextWeek}
-              className="flex items-center justify-center"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b border-custom-border-200 bg-custom-background-100">
+        <div className="flex">
+          {/* User column header */}
+          <div className="w-48 flex-shrink-0 border-r border-custom-border-200 p-3">
+            <h3 className="text-sm font-medium text-custom-text-100">Team Members</h3>
           </div>
-          <div className="text-base sm:text-lg font-semibold">
-            {format(weekStart, "MMM d")} - {format(addDays(weekStart, 6), "MMM d, yyyy")}
+          
+          {/* Week header */}
+          <div className="flex-1">
+            <TeamPlanningWeekHeader 
+              days={visibleDays}
+              weekData={weekData}
+            />
           </div>
         </div>
-        <Button variant="primary" size="sm" onClick={handleToday}>
-          Today
-        </Button>
       </div>
 
-      {/* Planning Grid */}
-      <div className="flex-1 overflow-hidden">
-        <TeamPlanningGrid
-          weekDays={weekDays}
-          memberIds={workspaceMemberIds || []}
-          onAssignTask={handleAssignTask}
-          teamPlanningStore={teamPlanningStore}
-        />
+      {/* Content */}
+      <div
+        className={cn("flex-1 overflow-auto", {
+          "vertical-scrollbar scrollbar-lg": windowWidth > 768,
+        })}
+        ref={scrollableContainerRef}
+      >
+        <div className="min-h-full">
+          {users.map((user) => (
+            <TeamPlanningUserRow
+              key={user.id}
+              user={user}
+              days={visibleDays}
+              tasks={tasksByUserAndDate[user.id] || {}}
+              readOnly={readOnly}
+              canEdit={canEditTasks?.(user.id) ?? true}
+              canCreate={canCreateTasks?.(user.id) ?? true}
+              onTaskAssign={(taskId, date) => onTaskAssign?.(taskId, user.id, date)}
+              onTaskCreate={(date, taskData) => onTaskCreate?.(user.id, date, taskData)}
+              onTaskUpdate={onTaskUpdate}
+              onTaskRemove={(taskId, date) => onTaskRemove?.(taskId, user.id, date)}
+            />
+          ))}
+        </div>
       </div>
-
-      {/* Task Assignment Modal */}
-      <TaskAssignmentModal
-        isOpen={isAssignmentModalOpen}
-        onClose={handleCloseModal}
-        assigneeId={selectedAssignee}
-        selectedDate={selectedDate}
-        teamPlanningStore={teamPlanningStore}
-      />
     </div>
   );
 });
