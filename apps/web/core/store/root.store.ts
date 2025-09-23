@@ -29,6 +29,7 @@ import { IProjectRootStore, ProjectRootStore } from "./project";
 import { IProjectViewStore, ProjectViewStore } from "./project-view.store";
 import { RouterStore, IRouterStore } from "./router.store";
 import { IStickyStore, StickyStore } from "./sticky/sticky.store";
+import { ITeamPlanningStore, TeamPlanningStore } from "./team-planning";
 import { ThemeStore, IThemeStore } from "./theme.store";
 import { ITransientStore, TransientStore } from "./transient.store";
 import { IUserStore, UserStore } from "./user";
@@ -64,6 +65,7 @@ export class CoreRootStore {
   favorite: IFavoriteStore;
   transient: ITransientStore;
   stickyStore: IStickyStore;
+  teamPlanning: ITeamPlanningStore;
   editorAssetStore: IEditorAssetStore;
   workItemFilters: IWorkItemFilterStore;
 
@@ -94,6 +96,7 @@ export class CoreRootStore {
     this.favorite = new FavoriteStore(this);
     this.transient = new TransientStore();
     this.stickyStore = new StickyStore();
+    this.teamPlanning = new TeamPlanningStore(this);
     this.editorAssetStore = new EditorAssetStore();
     this.analytics = new AnalyticsStore();
     this.workItemFilters = new WorkItemFilterStore();
