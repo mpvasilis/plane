@@ -102,4 +102,9 @@ export const locales = {
     accessibility: () => import("./tr-TR/accessibility.json"),
     editor: () => import("./tr-TR/editor.json"),
   },
+  el: {
+    translations: () => import("./el/translations.json"),
+    accessibility: () => import("./el/accessibility.json"),
+    editor: () => import("./el/editor.json"),
+  },
 };
