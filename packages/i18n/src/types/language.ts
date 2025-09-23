@@ -17,7 +17,8 @@ export type TLanguage =
   | "id"
   | "ro"
   | "vi-VN"
-  | "tr-TR";
+  | "tr-TR"
+  | "el";
 
 export interface ILanguageOption {
   label: string;
