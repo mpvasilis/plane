@@ -7,7 +7,7 @@ import { cn } from "@plane/utils";
 // components
 import { Button } from "@plane/ui";
 
-import { ITeamPlanningTask } from "@/store/team-planning";
+import { ITeamPlanningTask } from "@/store/team-planning/team-planning.store";
 
 interface TaskCardProps {
   task: ITeamPlanningTask;
@@ -27,8 +27,11 @@ const priorityConfig = {
 export const TaskCard = observer(({ task, onClick, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
   const [showActions, setShowActions] = useState(false);
   
-  const priority = task.priority || "medium";
-  const priorityStyles = priorityConfig[priority];
+  const priority = task.priority as keyof typeof priorityConfig || "medium";
+  const priorityStyles = priorityConfig[priority] || priorityConfig.medium;
+
+  // Use the state property directly from ITeamPlanningTask
+  const status = task.state || "todo";
 
   const handleStatusClick = (e: React.MouseEvent, status: "todo" | "in_progress" | "done") => {
     e.stopPropagation();
@@ -65,15 +68,15 @@ export const TaskCard = observer(({ task, onClick, onEdit, onDelete, onStatusCha
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const nextStatus = task.state === "todo" ? "in_progress" : task.state === "in_progress" ? "done" : "todo";
+              const nextStatus = status === "todo" ? "in_progress" : status === "in_progress" ? "done" : "todo";
               onStatusChange?.(nextStatus);
             }}
             className="flex items-center gap-1 hover:bg-custom-background-80 rounded p-0.5 transition-colors"
-            title={`Current: ${task.state || "todo"}. Click to change.`}
+            title={`Current: ${status}. Click to change.`}
           >
-            {task.state === "done" ? (
+            {status === "done" ? (
               <CheckCircle className="h-3 w-3 text-green-500" />
-            ) : task.state === "in_progress" ? (
+            ) : status === "in_progress" ? (
               <AlertCircle className="h-3 w-3 text-yellow-500" />
             ) : (
               <Clock className="h-3 w-3 text-custom-text-300" />
@@ -97,8 +100,8 @@ export const TaskCard = observer(({ task, onClick, onEdit, onDelete, onStatusCha
         <div className="absolute top-1 right-3 flex items-center gap-1">
           {onEdit && (
             <Button
-              variant="outline-without-text"
-              size="xs"
+              variant="outline-primary"
+              size="sm"
               onClick={(e) => handleActionClick(e, onEdit)}
               className="h-5 w-5 p-0"
               title="Edit task"
@@ -108,8 +111,8 @@ export const TaskCard = observer(({ task, onClick, onEdit, onDelete, onStatusCha
           )}
           {onDelete && (
             <Button
-              variant="outline-without-text"
-              size="xs"
+              variant="outline-primary"
+              size="sm"
               onClick={(e) => handleActionClick(e, onDelete)}
               className="h-5 w-5 p-0 text-red-500 hover:text-red-600"
               title="Delete task"

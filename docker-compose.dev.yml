@@ -1,0 +1,43 @@
+services:
+  # Development override for better debugging
+  proxy:
+    environment:
+      - NGINX_DEBUG=true
+    volumes:
+      - ./nginx/logs:/var/log/nginx
+
+  # Remove external port exposure for individual services in development
+  # since everything goes through proxy
+  web:
+    ports: []
+
+  admin:
+    ports: []
+
+  space:
+    ports: []
+
+  api:
+    ports: []
+
+  live:
+    ports: []
+
+  # Keep database ports exposed for development access
+  plane-db:
+    ports:
+      - "5432:5432"
+
+  plane-redis:
+    ports:
+      - "6379:6379"
+
+  plane-mq:
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  plane-minio:
+    ports:
+      - "9000:9000"
+      - "9090:9090"

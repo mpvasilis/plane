@@ -21,7 +21,7 @@ interface TeamMemberRowProps {
 
 export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamPlanningStore }: TeamMemberRowProps) => {
   // store hooks
-  const { getWorkspaceMemberDetails } = useMember();
+  const { workspace: { getWorkspaceMemberDetails } } = useMember();
 
   // derived values
   const memberDetails = getWorkspaceMemberDetails(memberId);
@@ -39,7 +39,7 @@ export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamP
         <div className="flex items-center gap-2 sm:gap-3">
           <Avatar
             name={memberDetails.member?.display_name || memberDetails.member?.email || ""}
-            src={memberDetails.member?.avatar}
+            src={memberDetails.member?.avatar_url}
             size="sm"
           />
           <div className="flex-1 min-w-0">
@@ -89,7 +89,7 @@ export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamP
               
               {/* Add Task Button */}
               <Button
-                variant="outline-without-text"
+                variant="outline-primary"
                 size="sm"
                 onClick={() => onAssignTask(memberId, day)}
                 className={cn(

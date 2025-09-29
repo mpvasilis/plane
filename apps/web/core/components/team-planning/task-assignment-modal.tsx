@@ -35,11 +35,11 @@ export const TaskAssignmentModal = observer(({
   const [isLoading, setIsLoading] = useState(false);
 
   // store hooks
-  const { getWorkspaceMemberDetails } = useMember();
+  const { workspace } = useMember();
   const { workspaceProjectIds, getProjectById } = useProject();
 
   // derived values
-  const assigneeDetails = assigneeId ? getWorkspaceMemberDetails(assigneeId) : null;
+  const assigneeDetails = assigneeId ? workspace.getWorkspaceMemberDetails(assigneeId) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +90,7 @@ export const TaskAssignmentModal = observer(({
             </h2>
           </div>
           <Button
-            variant="outline-without-text"
+            variant="outline-primary"
             size="sm"
             onClick={onClose}
             className="flex-shrink-0"

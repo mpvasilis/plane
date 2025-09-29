@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Calendar, Users, Settings } from "lucide-react";
 // plane ui
 import { Button, CustomMenu } from "@plane/ui";
@@ -27,11 +26,9 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
   const formatWeekRange = (date: Date) => {
     const startDate = getWeekStartDate(date, startOfWeek);
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
-    
     const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
     const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
     const year = startDate.getFullYear();
-    
     if (startMonth === endMonth) {
       return `${startMonth} ${startDate.getDate()}-${endDate.getDate()}, ${year}`;
     } else {
@@ -52,7 +49,7 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
           <Users className="w-5 h-5 text-custom-text-300" />
           <h2 className="text-xl font-semibold text-custom-text-100">Team Planning</h2>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-custom-text-400" />
           <span className="text-sm font-medium text-custom-text-200">
@@ -110,7 +107,7 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
               </div>
             </div>
           </CustomMenu.MenuItem>
-          
+
           <CustomMenu.MenuItem>
             <div className="flex items-center justify-between w-full">
               <span>Start week on</span>

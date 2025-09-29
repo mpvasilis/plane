@@ -121,10 +121,10 @@ export const TeamPlanningView: React.FC<TeamPlanningProps> = observer((props) =>
               readOnly={readOnly}
               canEdit={canEditTasks?.(user.id) ?? true}
               canCreate={canCreateTasks?.(user.id) ?? true}
-              onTaskAssign={(taskId, date) => onTaskAssign?.(taskId, user.id, date)}
-              onTaskCreate={(date, taskData) => onTaskCreate?.(user.id, date, taskData)}
+              onTaskAssign={(taskId, date) => onTaskAssign?.(taskId, user.id, date) || Promise.resolve()}
+              onTaskCreate={(date, taskData) => onTaskCreate?.(user.id, date, taskData) || Promise.resolve()}
               onTaskUpdate={onTaskUpdate}
-              onTaskRemove={(taskId, date) => onTaskRemove?.(taskId, user.id, date)}
+              onTaskRemove={(taskId, date) => onTaskRemove?.(taskId, user.id, date) || Promise.resolve()}
             />
           ))}
         </div>

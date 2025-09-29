@@ -54,8 +54,7 @@ export const TeamPlanningCell: React.FC<TeamPlanningCellProps> = observer((props
         
         if (source.data.type === "team-planning-task" && onTaskAssign) {
           const taskId = source.data.taskId as string;
-          const dateKey = date.toISOString().split('T')[0];
-          onTaskAssign(taskId, dateKey);
+          onTaskAssign(taskId);
         }
       },
     });

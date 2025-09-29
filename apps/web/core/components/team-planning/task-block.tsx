@@ -74,7 +74,6 @@ export const TeamPlanningTaskBlock: React.FC<TeamPlanningTaskBlockProps> = obser
               <div class="text-xs text-custom-text-400 mt-1">Moving task...</div>
             `;
             container.appendChild(previewElement);
-            return previewElement;
           },
         });
       },
@@ -199,9 +198,9 @@ export const TeamPlanningTaskBlock: React.FC<TeamPlanningTaskBlockProps> = obser
         {isExpanded && (
           <div className="mt-2 pt-2 border-t border-custom-border-200 space-y-1">
             {/* Description */}
-            {task.description && (
+            {task.description_html && (
               <div className="text-xs text-custom-text-300 line-clamp-3">
-                {task.description}
+                <div dangerouslySetInnerHTML={{ __html: task.description_html }} />
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { TIssue, IUserLite } from "@plane/types";
+import { TIssue, IUserLite, IStateLite } from "@plane/types";
 
 export interface TeamPlanningUser extends IUserLite {
   // Additional team planning specific properties can be added here
@@ -9,6 +9,7 @@ export interface TeamPlanningTask extends TIssue {
   start_date: string;
   target_date: string;
   assignee_ids: string[];
+  state_detail?: IStateLite;
 }
 
 export interface TeamPlanningCellData {
