@@ -33,7 +33,7 @@ export interface ITeamPlanningStore {
   createTask: (task: Omit<ITeamPlanningTask, "id" | "created_at" | "updated_at">) => Promise<ITeamPlanningTask>;
   updateTask: (taskId: string, updates: Partial<ITeamPlanningTask>) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
-  fetchTasksForWeek: (startDate: Date, endDate: Date) => Promise<void>;
+  fetchTasksForWeek: (startDate: Date, endDate: Date, projectId?: string) => Promise<void>;
 }
 
 export class TeamPlanningStore implements ITeamPlanningStore {
@@ -217,7 +217,7 @@ export class TeamPlanningStore implements ITeamPlanningStore {
   /**
    * Fetch tasks for a specific week (placeholder for API integration)
    */
-  fetchTasksForWeek = async (startDate: Date, endDate: Date): Promise<void> => {
+  fetchTasksForWeek = async (startDate: Date, endDate: Date, projectId?: string): Promise<void> => {
     // This would typically make an API call to fetch tasks
     // For now, we'll just set loading state
     runInAction(() => {
@@ -226,6 +226,12 @@ export class TeamPlanningStore implements ITeamPlanningStore {
 
     try {
       // API call would go here
+      // If projectId is provided, only fetch tasks for that project
+      if (projectId) {
+        // Filter existing demo tasks to only include project-specific ones
+        const projectTasks = Object.values(this.tasks).filter(task => task.project_id === projectId);
+        // In real implementation, this would be an API call with project filter
+      }
       await new Promise(resolve => setTimeout(resolve, 500));
     } finally {
       runInAction(() => {

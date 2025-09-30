@@ -157,4 +157,5 @@ export enum EProjectFeatureKey {
   VIEWS = "views",
   PAGES = "pages",
   INTAKE = "intake",
+  TEAM_PLANNING = "team_planning",
 }

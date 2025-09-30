@@ -1,4 +1,4 @@
-import { FileText, Layers } from "lucide-react";
+import { FileText, Layers, Users } from "lucide-react";
 // plane imports
 import { EUserPermissions, EProjectFeatureKey } from "@plane/constants";
 import { ContrastIcon, DiceIcon, LayersIcon, Intake } from "@plane/propel/icons";
@@ -75,5 +75,15 @@ export const getProjectFeatureNavigation = (
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.inbox_view,
     sortOrder: 6,
+  },
+  {
+    i18n_key: "sidebar.team_planning",
+    key: EProjectFeatureKey.TEAM_PLANNING,
+    name: "Team Planning",
+    href: `/${workspaceSlug}/projects/${projectId}/team-planning`,
+    icon: Users,
+    access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    shouldRender: true,
+    sortOrder: 7,
   },
 ];
