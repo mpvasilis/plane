@@ -18,14 +18,18 @@ interface TaskAssignmentModalProps {
   assigneeId: string | null;
   selectedDate: Date | null;
   teamPlanningStore: ITeamPlanningStore;
+  workspaceSlug: string;
+  projectId: string;
 }
 
-export const TaskAssignmentModal = observer(({ 
-  isOpen, 
-  onClose, 
-  assigneeId, 
+export const TaskAssignmentModal = observer(({
+  isOpen,
+  onClose,
+  assigneeId,
   selectedDate,
-  teamPlanningStore
+  teamPlanningStore,
+  workspaceSlug,
+  projectId
 }: TaskAssignmentModalProps) => {
   // states
   const [taskName, setTaskName] = useState("");
@@ -47,14 +51,18 @@ export const TaskAssignmentModal = observer(({
 
     setIsLoading(true);
     try {
-      await teamPlanningStore.createTask({
-        name: taskName,
-        description: taskDescription,
-        assignee_id: assigneeId,
-        target_date: format(selectedDate, "yyyy-MM-dd"),
-        priority,
-        estimate_point: estimatePoint || undefined,
-      });
+      await teamPlanningStore.createTask(
+        {
+          name: taskName,
+          description: taskDescription,
+          assignee_id: assigneeId,
+          target_date: format(selectedDate, "yyyy-MM-dd"),
+          priority,
+          estimate_point: estimatePoint || undefined,
+        },
+        workspaceSlug,
+        projectId
+      );
 
       // Reset form and close modal
       setTaskName("");
@@ -63,7 +71,7 @@ export const TaskAssignmentModal = observer(({
       setEstimatePoint("");
       onClose();
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error("Σφάλμα δημιουργίας εργασίας:", error);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +94,7 @@ export const TaskAssignmentModal = observer(({
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-custom-primary-100" />
             <h2 className="text-lg font-semibold text-custom-text-100">
-              Assign Task
+              Ανάθεση Εργασίας
             </h2>
           </div>
           <Button
@@ -105,14 +113,14 @@ export const TaskAssignmentModal = observer(({
           <div className="bg-custom-background-90 rounded-lg p-3 space-y-2">
             <div className="flex items-center gap-2 text-sm text-custom-text-300">
               <User className="h-4 w-4" />
-              <span>Assignee:</span>
+              <span>Υπεύθυνος:</span>
               <span className="font-medium text-custom-text-100">
                 {assigneeDetails?.member?.display_name || assigneeDetails?.member?.email}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-custom-text-300">
               <Calendar className="h-4 w-4" />
-              <span>Due Date:</span>
+              <span>Ημερομηνία Παράδοσης:</span>
               <span className="font-medium text-custom-text-100">
                 {format(selectedDate, "MMM d, yyyy")}
               </span>
@@ -122,13 +130,13 @@ export const TaskAssignmentModal = observer(({
           {/* Task Name */}
           <div>
             <label className="block text-sm font-medium text-custom-text-200 mb-1">
-              Task Name *
+              Όνομα Εργασίας *
             </label>
             <Input
               type="text"
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
-              placeholder="Enter task name..."
+              placeholder="Εισάγετε όνομα εργασίας..."
               required
               className="w-full"
             />
@@ -137,12 +145,12 @@ export const TaskAssignmentModal = observer(({
           {/* Task Description */}
           <div>
             <label className="block text-sm font-medium text-custom-text-200 mb-1">
-              Description
+              Περιγραφή
             </label>
             <textarea
               value={taskDescription}
               onChange={(e) => setTaskDescription(e.target.value)}
-              placeholder="Enter task description..."
+              placeholder="Εισάγετε περιγραφή εργασίας..."
               rows={3}
               className="w-full px-3 py-2 border border-custom-border-300 rounded-md bg-custom-background-100 text-custom-text-100 placeholder-custom-text-400 focus:border-custom-primary-100 focus:outline-none resize-none"
             />
@@ -151,30 +159,30 @@ export const TaskAssignmentModal = observer(({
           {/* Priority */}
           <div>
             <label className="block text-sm font-medium text-custom-text-200 mb-1">
-              Priority
+              Προτεραιότητα
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
               className="w-full px-3 py-2 border border-custom-border-300 rounded-md bg-custom-background-100 text-custom-text-100 focus:border-custom-primary-100 focus:outline-none"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+              <option value="low">Χαμηλή</option>
+              <option value="medium">Μέτρια</option>
+              <option value="high">Υψηλή</option>
+              <option value="urgent">Επείγουσα</option>
             </select>
           </div>
 
           {/* Estimate */}
           <div>
             <label className="block text-sm font-medium text-custom-text-200 mb-1">
-              Estimate (Story Points)
+              Εκτίμηση (Πόντοι Ιστορίας)
             </label>
             <Input
               type="text"
               value={estimatePoint}
               onChange={(e) => setEstimatePoint(e.target.value)}
-              placeholder="e.g., 1, 2, 3, 5, 8..."
+              placeholder="π.χ., 1, 2, 3, 5, 8..."
               className="w-full"
             />
           </div>
@@ -189,7 +197,7 @@ export const TaskAssignmentModal = observer(({
               disabled={!taskName.trim()}
               className="flex-1"
             >
-              Create Task
+              Δημιουργία Εργασίας
             </Button>
             <Button
               type="button"
@@ -198,7 +206,7 @@ export const TaskAssignmentModal = observer(({
               onClick={onClose}
               disabled={isLoading}
             >
-              Cancel
+              Ακύρωση
             </Button>
           </div>
         </form>

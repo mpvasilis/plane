@@ -17,9 +17,11 @@ interface TeamMemberRowProps {
   weekDays: Date[];
   onAssignTask: (assigneeId: string, date: Date) => void;
   teamPlanningStore: ITeamPlanningStore;
+  workspaceSlug: string;
+  projectId: string;
 }
 
-export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamPlanningStore }: TeamMemberRowProps) => {
+export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamPlanningStore, workspaceSlug, projectId }: TeamMemberRowProps) => {
   // store hooks
   const { workspace: { getWorkspaceMemberDetails } } = useMember();
 
@@ -77,11 +79,11 @@ export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamP
                   key={`${task.id}-${index}`}
                   task={task}
                   onStatusChange={(newStatus) => {
-                    teamPlanningStore.updateTask(task.id, { state: newStatus });
+                    teamPlanningStore.updateTask(task.id, { state: newStatus }, workspaceSlug, projectId);
                   }}
                   onDelete={() => {
-                    if (confirm("Are you sure you want to delete this task?")) {
-                      teamPlanningStore.deleteTask(task.id);
+                    if (confirm("Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την εργασία;")) {
+                      teamPlanningStore.deleteTask(task.id, workspaceSlug, projectId);
                     }
                   }}
                 />
@@ -100,7 +102,7 @@ export const TeamMemberRow = observer(({ memberId, weekDays, onAssignTask, teamP
                 )}
               >
                 <Plus className="h-3 w-3" />
-                <span className="text-xs hidden sm:inline">Add task</span>
+                <span className="text-xs hidden sm:inline">Προσθήκη εργασίας</span>
                 <span className="text-xs sm:hidden">+</span>
               </Button>
             </div>

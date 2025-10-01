@@ -41,7 +41,9 @@ const TeamPlanningPage: React.FC = observer(() => {
   // Fetch data on mount and when week changes
   useEffect(() => {
     if (workspaceSlug) {
-      teamPlanningStore.fetchTasksForWeek(weekStart, weekEnd);
+      // For workspace-level team planning, we would need to aggregate across projects
+      // For now, we'll skip the API call since it requires a projectId
+      // teamPlanningStore.fetchTasksForWeek(weekStart, weekEnd, workspaceSlug.toString());
     }
   }, [workspaceSlug, weekStart, weekEnd, teamPlanningStore]);
 
@@ -74,34 +76,21 @@ const TeamPlanningPage: React.FC = observer(() => {
 
   // Handlers
   const handleTaskCreate = async (_userId: string, date: string, taskData: Partial<TeamPlanningTask>) => {
-    await teamPlanningStore.createTask({
-      name: taskData.name || "New Task",
-      assignee_id: _userId,
-      target_date: date,
-      priority: "medium",
-    });
+    // Workspace-level team planning would need project selection
+    // For now, we'll show an alert
+    alert("Please select a project to create tasks. Use project-level team planning instead.");
   };
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<TeamPlanningTask>) => {
-    const storeUpdates: Partial<ITeamPlanningTask> = {
-      name: updates.name,
-      priority: updates.priority as "urgent" | "high" | "medium" | "low",
-    };
-    if (updates.assignee_ids?.[0]) {
-      storeUpdates.assignee_id = updates.assignee_ids[0];
-    }
-    if (updates.start_date) {
-      storeUpdates.target_date = updates.start_date;
-    }
-    await teamPlanningStore.updateTask(taskId, storeUpdates);
+    alert("Please use project-level team planning to edit tasks.");
   };
 
   const handleTaskRemove = async (taskId: string) => {
-    await teamPlanningStore.deleteTask(taskId);
+    alert("Please use project-level team planning to delete tasks.");
   };
 
   const handleTaskAssign = async (taskId: string, userId: string, date: string) => {
-    await teamPlanningStore.updateTask(taskId, { assignee_id: userId, target_date: date });
+    alert("Please use project-level team planning to assign tasks.");
   };
 
   const canEditTasks = (_userId: string) => true;

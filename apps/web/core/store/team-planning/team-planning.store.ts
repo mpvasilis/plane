@@ -1,8 +1,10 @@
-import { action, computed, makeObservable, observable, runInAction } from "mobx";
+import { format } from "date-fns";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
-import { format, addDays } from "date-fns";
 // types
 import { TIssue } from "@plane/types";
+// services
+import { TeamPlanningService } from "@/services/team-planning";
 // store
 import { CoreRootStore } from "../root.store";
 
@@ -25,15 +27,16 @@ export interface ITeamPlanningStore {
   tasks: Record<string, ITeamPlanningTask>; // taskId -> task
   tasksByAssigneeAndDate: Record<string, Record<string, string[]>>; // assigneeId -> dateString -> taskIds[]
   isLoading: boolean;
-  
+  error: string | null;
+
   // computed
   getTasksForAssigneeAndDate: (assigneeId: string, date: Date) => ITeamPlanningTask[];
-  
+
   // actions
-  createTask: (task: Omit<ITeamPlanningTask, "id" | "created_at" | "updated_at">) => Promise<ITeamPlanningTask>;
-  updateTask: (taskId: string, updates: Partial<ITeamPlanningTask>) => Promise<void>;
-  deleteTask: (taskId: string) => Promise<void>;
-  fetchTasksForWeek: (startDate: Date, endDate: Date, projectId?: string) => Promise<void>;
+  createTask: (task: Omit<ITeamPlanningTask, "id" | "created_at" | "updated_at">, workspaceSlug: string, projectId: string) => Promise<ITeamPlanningTask>;
+  updateTask: (taskId: string, updates: Partial<ITeamPlanningTask>, workspaceSlug: string, projectId: string) => Promise<void>;
+  deleteTask: (taskId: string, workspaceSlug: string, projectId: string) => Promise<void>;
+  fetchTasksForWeek: (startDate: Date, endDate: Date, workspaceSlug: string, projectId?: string) => Promise<void>;
 }
 
 export class TeamPlanningStore implements ITeamPlanningStore {
@@ -41,7 +44,11 @@ export class TeamPlanningStore implements ITeamPlanningStore {
   tasks: Record<string, ITeamPlanningTask> = {};
   tasksByAssigneeAndDate: Record<string, Record<string, string[]>> = {};
   isLoading = false;
-  
+  error: string | null = null;
+
+  // services
+  private teamPlanningService: TeamPlanningService;
+
   // root store
   rootStore: CoreRootStore;
 
@@ -51,7 +58,8 @@ export class TeamPlanningStore implements ITeamPlanningStore {
       tasks: observable,
       tasksByAssigneeAndDate: observable,
       isLoading: observable,
-      
+      error: observable,
+
       // actions
       createTask: action,
       updateTask: action,
@@ -60,59 +68,64 @@ export class TeamPlanningStore implements ITeamPlanningStore {
     });
 
     this.rootStore = _rootStore;
-    
-    // Initialize with some demo data for showcase
-    this.initializeDemoData();
+    this.teamPlanningService = new TeamPlanningService();
   }
 
   /**
-   * Initialize with demo data for showcase purposes
+   * Add a task to the local store
    */
-  private initializeDemoData = () => {
-    // This would typically be removed in production
-    const today = new Date();
-    const demoTasks: ITeamPlanningTask[] = [
-      {
-        id: "demo-1",
-        name: "Review PR #123",
-        description: "Code review for new authentication feature",
-        assignee_id: "demo-user-1",
-        target_date: format(today, "yyyy-MM-dd"),
-        priority: "high",
-        estimate_point: "2",
-        state: "in_progress",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-2", 
-        name: "Design mockups",
-        description: "Create mockups for dashboard redesign",
-        assignee_id: "demo-user-2",
-        target_date: format(addDays(today, 1), "yyyy-MM-dd"),
-        priority: "medium",
-        estimate_point: "5",
-        state: "todo",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
-
-    // Note: In a real implementation, you would get actual user IDs from the workspace
-    // This is just for demo purposes
+  private addTaskToStore = (task: ITeamPlanningTask) => {
     runInAction(() => {
-      demoTasks.forEach(task => {
-        this.tasks[task.id] = task;
-        if (!this.tasksByAssigneeAndDate[task.assignee_id]) {
-          this.tasksByAssigneeAndDate[task.assignee_id] = {};
-        }
-        if (!this.tasksByAssigneeAndDate[task.assignee_id][task.target_date]) {
-          this.tasksByAssigneeAndDate[task.assignee_id][task.target_date] = [];
-        }
-        this.tasksByAssigneeAndDate[task.assignee_id][task.target_date].push(task.id);
-      });
+      this.tasks[task.id] = task;
+
+      // Add to assignee/date index
+      const { assignee_id, target_date } = task;
+      if (!this.tasksByAssigneeAndDate[assignee_id]) {
+        this.tasksByAssigneeAndDate[assignee_id] = {};
+      }
+      if (!this.tasksByAssigneeAndDate[assignee_id][target_date]) {
+        this.tasksByAssigneeAndDate[assignee_id][target_date] = [];
+      }
+      this.tasksByAssigneeAndDate[assignee_id][target_date].push(task.id);
     });
   };
+
+  /**
+   * Remove a task from the local store
+   */
+  private removeTaskFromStore = (taskId: string) => {
+    const task = this.tasks[taskId];
+    if (!task) return;
+
+    runInAction(() => {
+      // Remove from assignee/date index
+      const { assignee_id, target_date } = task;
+      if (this.tasksByAssigneeAndDate[assignee_id]?.[target_date]) {
+        this.tasksByAssigneeAndDate[assignee_id][target_date] =
+          this.tasksByAssigneeAndDate[assignee_id][target_date].filter(id => id !== taskId);
+      }
+
+      // Remove from tasks map
+      delete this.tasks[taskId];
+    });
+  };
+
+  /**
+   * Convert TIssue to ITeamPlanningTask
+   */
+  private convertIssueToTask = (issue: TIssue): ITeamPlanningTask => ({
+    id: issue.id,
+    name: issue.name,
+    description: issue.description_html || "",
+    assignee_id: issue.assignee_ids?.[0] || "",
+    target_date: issue.target_date || "",
+    priority: (issue.priority as "urgent" | "high" | "medium" | "low") || "medium",
+    estimate_point: issue.estimate_point?.toString(),
+    project_id: issue.project_id || "",
+    state: "todo", // Simplified state mapping
+    created_at: issue.created_at,
+    updated_at: issue.updated_at,
+  });
 
   /**
    * Get tasks for a specific assignee and date
@@ -126,117 +139,145 @@ export class TeamPlanningStore implements ITeamPlanningStore {
   /**
    * Create a new team planning task
    */
-  createTask = async (taskData: Omit<ITeamPlanningTask, "id" | "created_at" | "updated_at">): Promise<ITeamPlanningTask> => {
-    const newTask: ITeamPlanningTask = {
-      ...taskData,
-      id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      state: taskData.state || "todo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  createTask = async (
+    taskData: Omit<ITeamPlanningTask, "id" | "created_at" | "updated_at">,
+    workspaceSlug: string,
+    projectId: string
+  ): Promise<ITeamPlanningTask> => {
+    try {
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
 
-    runInAction(() => {
-      // Add task to tasks map
-      this.tasks[newTask.id] = newTask;
-      
-      // Add task to assignee/date index
-      const { assignee_id, target_date } = newTask;
-      if (!this.tasksByAssigneeAndDate[assignee_id]) {
-        this.tasksByAssigneeAndDate[assignee_id] = {};
-      }
-      if (!this.tasksByAssigneeAndDate[assignee_id][target_date]) {
-        this.tasksByAssigneeAndDate[assignee_id][target_date] = [];
-      }
-      this.tasksByAssigneeAndDate[assignee_id][target_date].push(newTask.id);
-    });
+      const createdIssue = await this.teamPlanningService.createTask(workspaceSlug, projectId, taskData);
+      const newTask = this.convertIssueToTask(createdIssue);
 
-    return newTask;
+      this.addTaskToStore(newTask);
+
+      runInAction(() => {
+        this.isLoading = false;
+      });
+
+      return newTask;
+    } catch (error) {
+      runInAction(() => {
+        this.isLoading = false;
+        this.error = error instanceof Error ? error.message : "Failed to create task";
+      });
+      throw error;
+    }
   };
 
   /**
    * Update an existing task
    */
-  updateTask = async (taskId: string, updates: Partial<ITeamPlanningTask>): Promise<void> => {
+  updateTask = async (
+    taskId: string,
+    updates: Partial<ITeamPlanningTask>,
+    workspaceSlug: string,
+    projectId: string
+  ): Promise<void> => {
     const existingTask = this.tasks[taskId];
     if (!existingTask) return;
 
-    const updatedTask = {
-      ...existingTask,
-      ...updates,
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
 
-    runInAction(() => {
-      // If assignee or date changed, update the index
-      if (updates.assignee_id || updates.target_date) {
-        // Remove from old index
-        const oldAssigneeId = existingTask.assignee_id;
-        const oldDate = existingTask.target_date;
-        if (this.tasksByAssigneeAndDate[oldAssigneeId]?.[oldDate]) {
-          this.tasksByAssigneeAndDate[oldAssigneeId][oldDate] = 
-            this.tasksByAssigneeAndDate[oldAssigneeId][oldDate].filter(id => id !== taskId);
-        }
+      const updatedIssue = await this.teamPlanningService.updateTask(workspaceSlug, projectId, taskId, updates);
+      const updatedTask = this.convertIssueToTask(updatedIssue);
 
-        // Add to new index
-        const newAssigneeId = updates.assignee_id || existingTask.assignee_id;
-        const newDate = updates.target_date || existingTask.target_date;
-        if (!this.tasksByAssigneeAndDate[newAssigneeId]) {
-          this.tasksByAssigneeAndDate[newAssigneeId] = {};
-        }
-        if (!this.tasksByAssigneeAndDate[newAssigneeId][newDate]) {
-          this.tasksByAssigneeAndDate[newAssigneeId][newDate] = [];
-        }
-        this.tasksByAssigneeAndDate[newAssigneeId][newDate].push(taskId);
-      }
+      // Remove old task from store and add updated one
+      this.removeTaskFromStore(taskId);
+      this.addTaskToStore(updatedTask);
 
-      // Update the task
-      this.tasks[taskId] = updatedTask;
-    });
+      runInAction(() => {
+        this.isLoading = false;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.isLoading = false;
+        this.error = error instanceof Error ? error.message : "Failed to update task";
+      });
+      throw error;
+    }
   };
 
   /**
    * Delete a task
    */
-  deleteTask = async (taskId: string): Promise<void> => {
+  deleteTask = async (taskId: string, workspaceSlug: string, projectId: string): Promise<void> => {
     const task = this.tasks[taskId];
     if (!task) return;
 
-    runInAction(() => {
-      // Remove from assignee/date index
-      const { assignee_id, target_date } = task;
-      if (this.tasksByAssigneeAndDate[assignee_id]?.[target_date]) {
-        this.tasksByAssigneeAndDate[assignee_id][target_date] = 
-          this.tasksByAssigneeAndDate[assignee_id][target_date].filter(id => id !== taskId);
-      }
-
-      // Remove from tasks map
-      delete this.tasks[taskId];
-    });
-  };
-
-  /**
-   * Fetch tasks for a specific week (placeholder for API integration)
-   */
-  fetchTasksForWeek = async (startDate: Date, endDate: Date, projectId?: string): Promise<void> => {
-    // This would typically make an API call to fetch tasks
-    // For now, we'll just set loading state
-    runInAction(() => {
-      this.isLoading = true;
-    });
-
     try {
-      // API call would go here
-      // If projectId is provided, only fetch tasks for that project
-      if (projectId) {
-        // Filter existing demo tasks to only include project-specific ones
-        const projectTasks = Object.values(this.tasks).filter(task => task.project_id === projectId);
-        // In real implementation, this would be an API call with project filter
-      }
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } finally {
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
+
+      await this.teamPlanningService.deleteTask(workspaceSlug, projectId, taskId);
+      this.removeTaskFromStore(taskId);
+
       runInAction(() => {
         this.isLoading = false;
       });
+    } catch (error) {
+      runInAction(() => {
+        this.isLoading = false;
+        this.error = error instanceof Error ? error.message : "Failed to delete task";
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * Fetch tasks for a specific week
+   */
+  fetchTasksForWeek = async (
+    startDate: Date,
+    endDate: Date,
+    workspaceSlug: string,
+    projectId?: string
+  ): Promise<void> => {
+    if (!projectId) return;
+
+    try {
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
+
+      const issues = await this.teamPlanningService.getTasksForDateRange(
+        workspaceSlug,
+        projectId,
+        startDate,
+        endDate
+      );
+
+      const tasks = issues.map(issue => this.convertIssueToTask(issue));
+
+      runInAction(() => {
+        // Clear existing tasks for this project and date range
+        const existingProjectTasks = Object.values(this.tasks).filter(
+          task => task.project_id === projectId
+        );
+        existingProjectTasks.forEach(task => this.removeTaskFromStore(task.id));
+
+        // Add new tasks
+        tasks.forEach(task => this.addTaskToStore(task));
+
+        this.isLoading = false;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.isLoading = false;
+        this.error = error instanceof Error ? error.message : "Failed to fetch tasks";
+      });
+      throw error;
     }
   };
 }

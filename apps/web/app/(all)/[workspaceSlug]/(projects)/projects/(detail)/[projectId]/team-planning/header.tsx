@@ -6,6 +6,14 @@ import { Button, CustomMenu } from "@plane/ui";
 // plane utils
 import { cn } from "@plane/utils";
 
+// Helper function
+function getWeekStartDate(date: Date, startOfWeek: number): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 && startOfWeek === 1 ? -6 : startOfWeek);
+  return new Date(d.setDate(diff));
+}
+
 interface TeamPlanningHeaderProps {
   currentWeek: Date;
   onWeekChange: (date: Date) => void;
@@ -50,7 +58,7 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
         <div className="flex items-center space-x-2">
           <Users className="w-5 h-5 text-custom-text-300" />
           <h2 className="text-xl font-semibold text-custom-text-100">
-            {projectName ? `${projectName} - Team Planning` : "Team Planning"}
+            {projectName ? `${projectName} - Σχεδιασμός Ομάδας` : "Σχεδιασμός Ομάδας"}
           </h2>
         </div>
 
@@ -69,19 +77,19 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
             onClick={() => navigateWeek('prev')}
             className="px-3 py-1 text-sm hover:bg-custom-background-80 border-r border-custom-border-300"
           >
-            Previous
+            Προηγούμενη
           </button>
           <button
             onClick={() => onWeekChange(new Date())}
             className="px-3 py-1 text-sm hover:bg-custom-background-80 border-r border-custom-border-300"
           >
-            This Week
+            Αυτή η Εβδομάδα
           </button>
           <button
             onClick={() => navigateWeek('next')}
             className="px-3 py-1 text-sm hover:bg-custom-background-80"
           >
-            Next
+            Επόμενη
           </button>
         </div>
 
@@ -98,7 +106,7 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
             onClick={() => onToggleWeekends(!showWeekends)}
           >
             <div className="flex items-center justify-between w-full">
-              <span>Show weekends</span>
+              <span>Εμφάνιση Σαββατοκύριακων</span>
               <div className={cn(
                 "w-4 h-4 border border-custom-border-300 rounded",
                 showWeekends && "bg-custom-primary-100 border-custom-primary-100"
@@ -114,15 +122,15 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
 
           <CustomMenu.MenuItem>
             <div className="flex items-center justify-between w-full">
-              <span>Start week on</span>
+              <span>Εβδομάδα ξεκινά</span>
               <select
                 value={startOfWeek}
                 onChange={(e) => onStartOfWeekChange(Number(e.target.value))}
                 className="text-xs bg-transparent border-none outline-none"
                 onClick={(e) => e.stopPropagation()}
               >
-                <option value={0}>Sunday</option>
-                <option value={1}>Monday</option>
+                <option value={0}>Κυριακή</option>
+                <option value={1}>Δευτέρα</option>
               </select>
             </div>
           </CustomMenu.MenuItem>
@@ -131,11 +139,3 @@ export const TeamPlanningHeader: React.FC<TeamPlanningHeaderProps> = ({
     </div>
   );
 };
-
-// Helper function
-function getWeekStartDate(date: Date, startOfWeek: number): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 && startOfWeek === 1 ? -6 : startOfWeek);
-  return new Date(d.setDate(diff));
-}

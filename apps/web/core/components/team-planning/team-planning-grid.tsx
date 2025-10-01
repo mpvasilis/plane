@@ -13,9 +13,11 @@ interface TeamPlanningGridProps {
   memberIds: string[];
   onAssignTask: (assigneeId: string, date: Date) => void;
   teamPlanningStore: ITeamPlanningStore;
+  workspaceSlug: string;
+  projectId: string;
 }
 
-export const TeamPlanningGrid = observer(({ weekDays, memberIds, onAssignTask, teamPlanningStore }: TeamPlanningGridProps) => {
+export const TeamPlanningGrid = observer(({ weekDays, memberIds, onAssignTask, teamPlanningStore, workspaceSlug, projectId }: TeamPlanningGridProps) => {
   return (
     <div className="h-full w-full overflow-auto">
       <div className="min-w-fit lg:min-w-0">
@@ -23,7 +25,7 @@ export const TeamPlanningGrid = observer(({ weekDays, memberIds, onAssignTask, t
         <div className="sticky top-0 z-10 flex bg-custom-background-100 border-b border-custom-border-200">
           {/* Team Member Column Header */}
           <div className="w-48 lg:w-56 flex-shrink-0 border-r border-custom-border-200 bg-custom-background-90 p-3">
-            <h3 className="text-sm font-semibold text-custom-text-300">Team Member</h3>
+            <h3 className="text-sm font-semibold text-custom-text-300">Μέλος Ομάδας</h3>
           </div>
           
           {/* Day Headers */}
@@ -64,6 +66,8 @@ export const TeamPlanningGrid = observer(({ weekDays, memberIds, onAssignTask, t
               weekDays={weekDays}
               onAssignTask={onAssignTask}
               teamPlanningStore={teamPlanningStore}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { startOfWeek as getStartOfWeek, endOfWeek } from "date-fns";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -38,10 +38,18 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
   const [showWeekends, setShowWeekends] = useState(true);
   const [startOfWeekDay, setStartOfWeekDay] = useState(1); // Monday
 
-  // Computed week data
-  const weekStart = getStartOfWeek(currentWeek, { weekStartsOn: startOfWeekDay as 0 | 1 });
-  const weekEnd = endOfWeek(currentWeek, { weekStartsOn: startOfWeekDay as 0 | 1 });
-  const weekData = {
+  // Computed week data - memoized to prevent infinite loops
+  const weekStart = useMemo(
+    () => getStartOfWeek(currentWeek, { weekStartsOn: startOfWeekDay as 0 | 1 }),
+    [currentWeek, startOfWeekDay]
+  );
+
+  const weekEnd = useMemo(
+    () => endOfWeek(currentWeek, { weekStartsOn: startOfWeekDay as 0 | 1 }),
+    [currentWeek, startOfWeekDay]
+  );
+
+  const weekData = useMemo(() => ({
     startDate: weekStart,
     endDate: weekEnd,
     days: Array.from({ length: 7 }, (_, i) => {
@@ -49,14 +57,20 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
       date.setDate(weekStart.getDate() + i);
       return date;
     }),
-  };
+  }), [weekStart, weekEnd]);
 
   // Fetch data on mount and when week changes
   useEffect(() => {
     if (workspaceSlug && projectId) {
-      teamPlanningStore.fetchTasksForWeek(weekStart, weekEnd);
+      teamPlanningStore.fetchTasksForWeek(
+        weekStart,
+        weekEnd,
+        workspaceSlug.toString(),
+        projectId.toString()
+      );
     }
-  }, [workspaceSlug, projectId, weekStart, weekEnd, teamPlanningStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceSlug, projectId, weekStart, weekEnd]);
 
   // Convert between TeamPlanningTask and ITeamPlanningTask
   const convertToTeamPlanningTask = (task: ITeamPlanningTask): TeamPlanningTask => ({
@@ -87,40 +101,83 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
 
   // Handlers
   const handleTaskCreate = async (userId: string, date: string, taskData: Partial<TeamPlanningTask>) => {
-    await teamPlanningStore.createTask({
-      name: taskData.name || "New Task",
-      assignee_id: userId,
-      target_date: date,
-      priority: "medium",
-      project_id: projectId?.toString() || "",
-    });
+    if (!workspaceSlug || !projectId) return;
+
+    try {
+      await teamPlanningStore.createTask(
+        {
+          name: taskData.name || "Νέα Εργασία",
+          assignee_id: userId,
+          target_date: date,
+          priority: "medium",
+          project_id: projectId.toString(),
+        },
+        workspaceSlug.toString(),
+        projectId.toString()
+      );
+    } catch (error) {
+      console.error("Αποτυχία δημιουργίας εργασίας:", error);
+    }
   };
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<TeamPlanningTask>) => {
-    const storeUpdates: Partial<ITeamPlanningTask> = {
-      name: updates.name,
-      priority: updates.priority as "urgent" | "high" | "medium" | "low",
-      project_id: projectId?.toString() || "",
-    };
-    if (updates.assignee_ids?.[0]) {
-      storeUpdates.assignee_id = updates.assignee_ids[0];
+    if (!workspaceSlug || !projectId) return;
+
+    try {
+      const storeUpdates: Partial<ITeamPlanningTask> = {
+        name: updates.name,
+        priority: updates.priority as "urgent" | "high" | "medium" | "low",
+        project_id: projectId.toString(),
+      };
+      if (updates.assignee_ids?.[0]) {
+        storeUpdates.assignee_id = updates.assignee_ids[0];
+      }
+      if (updates.start_date) {
+        storeUpdates.target_date = updates.start_date;
+      }
+
+      await teamPlanningStore.updateTask(
+        taskId,
+        storeUpdates,
+        workspaceSlug.toString(),
+        projectId.toString()
+      );
+    } catch (error) {
+      console.error("Αποτυχία ενημέρωσης εργασίας:", error);
     }
-    if (updates.start_date) {
-      storeUpdates.target_date = updates.start_date;
-    }
-    await teamPlanningStore.updateTask(taskId, storeUpdates);
   };
 
   const handleTaskRemove = async (taskId: string) => {
-    await teamPlanningStore.deleteTask(taskId);
+    if (!workspaceSlug || !projectId) return;
+
+    try {
+      await teamPlanningStore.deleteTask(
+        taskId,
+        workspaceSlug.toString(),
+        projectId.toString()
+      );
+    } catch (error) {
+      console.error("Αποτυχία διαγραφής εργασίας:", error);
+    }
   };
 
   const handleTaskAssign = async (taskId: string, userId: string, date: string) => {
-    await teamPlanningStore.updateTask(taskId, {
-      assignee_id: userId,
-      target_date: date,
-      project_id: projectId?.toString() || "",
-    });
+    if (!workspaceSlug || !projectId) return;
+
+    try {
+      await teamPlanningStore.updateTask(
+        taskId,
+        {
+          assignee_id: userId,
+          target_date: date,
+          project_id: projectId.toString(),
+        },
+        workspaceSlug.toString(),
+        projectId.toString()
+      );
+    } catch (error) {
+      console.error("Αποτυχία ανάθεσης εργασίας:", error);
+    }
   };
 
   const canEditTasks = (userId: string) => {
@@ -153,7 +210,7 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
 
   return (
     <>
-      <PageHead title={`${project?.name || "Project"} - Team Planning`} />
+      <PageHead title={`${project?.name || "Έργο"} - Σχεδιασμός Ομάδας`} />
       <div className="h-full w-full flex flex-col">
         <TeamPlanningHeader
           currentWeek={currentWeek}
@@ -165,13 +222,24 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
           projectName={project?.name}
         />
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
+          {teamPlanningStore.error && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4 mx-4">
+              <div className="flex">
+                <div className="text-sm text-red-700">
+                  <strong>Σφάλμα:</strong> {teamPlanningStore.error}
+                </div>
+              </div>
+            </div>
+          )}
+
           <TeamPlanningView
             users={users}
             tasks={projectTasks}
             weekData={weekData}
             showWeekends={showWeekends}
             startOfWeek={startOfWeekDay}
+            readOnly={teamPlanningStore.isLoading}
             onTaskAssign={handleTaskAssign}
             onTaskCreate={handleTaskCreate}
             onTaskUpdate={handleTaskUpdate}
@@ -179,6 +247,15 @@ const ProjectTeamPlanningPage: React.FC = observer(() => {
             canEditTasks={canEditTasks}
             canCreateTasks={canCreateTasks}
           />
+
+          {teamPlanningStore.isLoading && (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+              <div className="bg-white rounded-lg shadow-lg p-6 flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-custom-primary-100" />
+                <span className="text-sm text-custom-text-200">Φόρτωση...</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
