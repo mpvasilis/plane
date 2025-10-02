@@ -12,6 +12,7 @@ from plane.app.views import (
     CycleUserPropertiesEndpoint,
     CycleArchiveUnarchiveEndpoint,
 )
+from plane.app.views.cycle.recurring_work_item import CycleRecurringWorkItemViewSet
 
 
 urlpatterns = [
@@ -98,5 +99,26 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/analytics/",
         CycleAnalyticsEndpoint.as_view(),
         name="project-cycle",
+    ),
+    # Cycle Recurring Work Items
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/recurring-work-items/for-cycle/",
+        CycleRecurringWorkItemViewSet.as_view({"get": "for_cycle"}),
+        name="cycle-recurring-work-items-for-cycle",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/recurring-work-items/generate/",
+        CycleRecurringWorkItemViewSet.as_view({"post": "generate_for_cycle"}),
+        name="cycle-recurring-work-items-generate",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/recurring-work-items/generate-async/",
+        CycleRecurringWorkItemViewSet.as_view({"post": "generate_for_cycle_async"}),
+        name="cycle-recurring-work-items-generate-async",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/recurring-work-items/stats/",
+        CycleRecurringWorkItemViewSet.as_view({"get": "cycle_stats"}),
+        name="cycle-recurring-work-items-stats",
     ),
 ]

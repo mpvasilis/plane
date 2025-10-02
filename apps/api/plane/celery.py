@@ -73,6 +73,23 @@ app.conf.beat_schedule = {
         "task": "plane.bgtasks.exporter_expired_task.delete_old_s3_link",
         "schedule": crontab(hour=3, minute=45),  # UTC 03:45
     },
+    # Recurring work items tasks
+    "generate-recurring-work-items": {
+        "task": "plane.bgtasks.recurring_work_item_task.generate_recurring_work_items_task",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "cleanup-old-recurring-instances": {
+        "task": "plane.bgtasks.recurring_work_item_task.cleanup_old_recurring_work_item_instances",
+        "schedule": crontab(hour=4, minute=0),  # UTC 04:00 daily
+    },
+    "update-recurring-schedules": {
+        "task": "plane.bgtasks.recurring_work_item_task.update_recurring_work_item_schedules",
+        "schedule": crontab(hour=4, minute=30),  # UTC 04:30 daily
+    },
+    "pause-expired-recurring-items": {
+        "task": "plane.bgtasks.recurring_work_item_task.pause_expired_recurring_work_items",
+        "schedule": crontab(hour=5, minute=0),  # UTC 05:00 daily
+    },
 }
 
 

@@ -85,3 +85,5 @@ from .device import Device, DeviceSession
 from .sticky import Sticky
 
 from .description import Description, DescriptionVersion
+
+from .recurring_work_item import RecurrenceSchedule, RecurringWorkItem, RecurringWorkItemInstance
